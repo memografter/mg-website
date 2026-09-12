@@ -47,7 +47,7 @@ const apiPage = (
 const providerPage = (slug: string, name: string, packages: string, notes: string[]): DocPage =>
   page(`adapters/${slug}`, `${name} adapter`, `Connect MemoGrafter to ${name} models.`, "Adapter", [
     { title: "Installation", code: [{ label: "terminal", code: packages }] },
-    { title: "Configuration", code: [{ label: "adapter.ts", language: "ts", code: `const agent = new MemoGrafterAgent({\n  db: { connectionString: process.env.DATABASE_URL! },\n  llm: ${name}LLMAdapter,\n  embedder: ${name}EmbedAdapter,\n});` }] },
+    { title: "Configuration", code: [{ label: "adapter.ts", language: "ts", code: `const agent = new MemoGrafterAgent({\n  db: { connectionString: process.env.DATABASE_URL! },\n  llm: new ${name}LLMAdapter(),\n  embedder: new ${name === "Anthropic" ? "OpenAI" : name}EmbedAdapter(),\n});` }] },
     { title: "Supported capabilities", bullets: ["Chat completion for response generation and memory extraction.", "Embedding generation when the provider exposes a compatible embedding model.", "Server-side authentication through environment variables."] },
     { title: "Provider notes", bullets: notes },
     { title: "Troubleshooting", bullets: ["Confirm the API key is available to the server process.", "Verify the configured model supports the requested operation.", "Check rate limits when ingestion succeeds intermittently."] },
@@ -57,6 +57,7 @@ const studioPage = (slug: string, title: string, description: string, bullets: s
   page(`studio/${slug}`, title, description, "Studio", [
     { title: "Overview", body: [description] },
     { title: "Workflow", bullets },
+    { title: "Current memory inspection", body: ["Inspect stable topics and bounded episodes, memory quality and provenance, and Clusters navigation with its Unclustered group. Domain metadata appears in topic details, snapshots, exports, and invocation previews without changing ranking or prompts.", "Invocation context distinguishes pinned topics, recalled facts, episode history, and recent messages. Pins require active context without changing quality or lifecycle. Studio inspects durable ingestion state; reconciliation repairs remain explicit runtime operations."], links: [{ label: "Topic domains", href: "/docs/guides/topic-domains" }, { label: "Memory quality", href: "/docs/concepts/memory-quality" }, { label: "Durable ingestion", href: "/docs/guides/durable-ingestion" }] },
     { title: "Safety", body: ["Studio is local developer tooling. Review lifecycle mutations carefully and avoid exposing the Studio server as a public application endpoint."] },
   ]);
 
@@ -92,8 +93,8 @@ export const expandedDocsPages: DocPage[] = [
   taskPage("guides/knowledge-extraction", "Knowledge extraction", "Turn text and documents into structured memories without generating a chat response.", "Source material becomes searchable topics and atomic facts.", ["Normalize source text and preserve a source identifier in tags.", "Call `ingest()` for each bounded document or section.", "Allow ingestion to finish before recall evaluation.", "Use Studio to review extraction quality."], `await agent.ingest(documentText, { tags: ["source:handbook", "version:2026"] });`),
   taskPage("guides/multi-session-memory", "Multi-session memory", "Carry selected context between otherwise independent sessions.", "A new session receives relevant memory with source provenance rather than inheriting an entire transcript.", ["Keep each conversation in its own session.", "Preview relevant source topics with a graft query.", "Absorb only the memories needed by the destination.", "Retain source and destination identifiers for auditing."], `await targetAgent.absorbFromAgent(sourceAgent, { query: "customer preferences", topK: 5 });`),
   taskPage("guides/streaming-responses", "Streaming responses", "Combine application-level response streaming with background memory ingestion.", "Tokens can reach the user immediately while the completed exchange is persisted afterward.", ["Recall before starting the provider stream.", "Inject the returned system prompt into the streaming request.", "Collect the final assistant text without delaying token delivery.", "Ingest the completed user and assistant turns after the stream closes."], `const memory = await agent.recall(userMessage, { tokenBudget: 1000 });\nconst stream = llm.stream({ system: memory.systemPrompt, message: userMessage });\n// After collecting the completed assistant response:\nawait agent.ingest(completedExchange);`),
-  taskPage("guides/memory-review", "Memory review", "Review what MemoGrafter retained and why it is recalled.", "Developers can inspect topics, facts, confidence, provenance, and lifecycle state before shipping.", ["Launch Studio against the same database as the application.", "Select the session and inspect its graph.", "Compare recalled facts with Prompt Preview.", "Suppress or forget incorrect memory through supported lifecycle actions."]),
-  taskPage("guides/pruning", "Pruning", "Reduce noisy active memory while retaining an auditable graph.", "Low-value or obsolete memory stops participating in recall without uncontrolled deletion.", ["Identify stale, low-confidence, conflicting, or superseded facts.", "Prefer lifecycle state changes over physical deletion.", "Apply pruning in bounded batches.", "Measure recall quality before and after each policy change."], `const candidates = await agent.recall("obsolete project decisions", { limit: 50 });\n// Review candidates, then forget only approved memory IDs.`),
+  taskPage("guides/memory-review", "Memory review", "Review what MemoGrafter retained and why it is recalled.", "Developers can inspect topics, facts, quality, provenance, and lifecycle state before shipping.", ["Launch Studio against the same database as the application.", "Select the session and inspect its graph.", "Compare recalled facts with Prompt Preview.", "Suppress or forget incorrect memory through supported lifecycle actions."]),
+  taskPage("guides/pruning", "Pruning", "Reduce noisy active memory while retaining an auditable graph.", "Low-value or obsolete memory stops participating in recall without uncontrolled deletion.", ["Identify stale, poorly supported, conflicting, or superseded facts.", "Prefer lifecycle state changes over physical deletion.", "Apply pruning in bounded batches.", "Measure recall quality before and after each policy change."], `const candidates = await agent.recall("obsolete project decisions", { limit: 50 });\n// Review candidates, then forget only approved memory IDs.`),
   taskPage("guides/forget-memory", "Forget memory", "Remove a memory from active retrieval when a user or application requests it.", "Forgotten facts no longer appear in normal recall while lifecycle history remains auditable.", ["Resolve the exact memory identifier.", "Call `forget()` with the appropriate scope.", "Confirm the memory no longer appears in recall.", "Record the application-level reason when policy requires it."], `await agent.forget(memoryId);`),
   taskPage("guides/conversation-summaries", "Conversation summaries", "Create compact, durable summaries from long conversations.", "The application uses topic summaries and atomic facts instead of a single ever-growing transcript summary.", ["Ingest complete conversational turns.", "Let topic drift divide the transcript into meaningful segments.", "Use topic nodes for broad summaries and memory nodes for exact facts.", "Recall summaries by the next task rather than by recency alone."], `await agent.ingest(transcript);\nconst summary = await agent.graftByRelevance("decisions and open questions");`),
 
@@ -109,7 +110,7 @@ export const expandedDocsPages: DocPage[] = [
   apiPage("errors", "Errors", "Handle setup, provider, storage, ingestion, retrieval, and lifecycle failures predictably.", `try {\n  await agent.invoke(message);\n} catch (error: unknown) {\n  // Narrow, log context, and choose an application fallback.\n}`, ["Thrown values should be narrowed from `unknown`.", "Provider and database clients can contribute their own error types."], "Methods reject their promises when a required operation cannot complete.", `try {\n  return await agent.recall(query);\n} catch (error) {\n  logger.error({ error, sessionId }, "Recall failed");\n  return { facts: [], systemPrompt: "" };\n}`, ["Do not log provider keys, raw credentials, or unnecessary private memory.", "Queue and cache failures may degrade differently from required storage operations."], ["Studio Troubleshooting", "Scaling", "MemoGrafterAgent"]),
 
   providerPage("openai", "OpenAI", `npm install memo-grafter openai`, ["Set `OPENAI_API_KEY` on the server.", "Choose completion and embedding models independently.", "Keep embedding dimensions consistent with the database index."]),
-  providerPage("anthropic", "Anthropic", `npm install memo-grafter @anthropic-ai/sdk`, ["Set `ANTHROPIC_API_KEY` on the server.", "Anthropic supplies completion models; pair it with a compatible embedding adapter.", "Normalize system prompts through the adapter contract."]),
+  providerPage("anthropic", "Anthropic", `npm install memo-grafter @anthropic-ai/sdk openai`, ["Set `ANTHROPIC_API_KEY` on the server.", "Anthropic supplies completion models; this example pairs it with OpenAI embeddings and also requires OPENAI_API_KEY.", "Normalize system prompts through the adapter contract."]),
   providerPage("gemini", "Gemini", `npm install memo-grafter @google/generative-ai`, ["Set `GEMINI_API_KEY` on the server.", "Configure explicit generation and embedding models.", "Confirm regional availability and quotas for the selected model."]),
   page("adapters/custom-adapter", "Custom adapter", "Implement provider-agnostic completion and embedding behavior.", "Adapter", [{ title: "Contracts", body: ["MemoGrafter depends on small LLM and embedding interfaces so provider SDK details remain outside the memory pipelines."], code: [{ label: "adapter.ts", language: "ts", code: `class MyLLMAdapter implements LLMAdapter {\n  async complete(messages: Message[], system?: string): Promise<string> {\n    return provider.complete({ messages, system });\n  }\n}` }] }, { title: "Implementation checklist", bullets: ["Map MemoGrafter roles and system context to the provider request.", "Return plain completion text.", "Normalize provider failures without hiding useful context.", "Add timeouts, retries, and observability at the adapter boundary."] }, { title: "Validation", bullets: ["Test system-prompt handling.", "Test empty and long inputs.", "Test rate limits and transient failures."] }]),
   page("adapters/embeddings", "Embeddings", "Configure semantic vectors for topic detection and memory retrieval.", "Adapter", [{ title: "Role", body: ["Embeddings power drift detection, semantic recall, topic matching, and graph expansion. All stored and queried vectors must use compatible dimensions and semantics."] }, { title: "Configuration", bullets: ["Choose one embedding model per compatible index.", "Record model and dimension changes as a migration concern.", "Batch document ingestion when the provider supports it.", "Evaluate similarity thresholds with representative queries."] }, { title: "Custom implementation", code: [{ label: "embedder.ts", language: "ts", code: `class MyEmbedder implements EmbedAdapter {\n  async embed(text: string): Promise<number[]> {\n    return provider.embed(text);\n  }\n}` }] }]),
@@ -123,7 +124,7 @@ export const expandedDocsPages: DocPage[] = [
   studioPage("search", "Search", "Find sessions, topics, and memories during graph inspection.", ["Start with a distinctive subject, value, tag, or session identifier.", "Narrow results before applying lifecycle actions.", "Open the parent topic to understand provenance.", "Use semantic Prompt Preview for meaning-based retrieval checks."]),
   studioPage("troubleshooting", "Studio troubleshooting", "Resolve database, schema, port, graph-loading, and preview problems.", ["Confirm PostgreSQL and `pgvector` are reachable.", "Run migrations for the installed MemoGrafter version.", "Use the next available local port if 2891 is occupied.", "Confirm provider credentials when Prompt Preview needs model access.", "Inspect the terminal for the underlying server error."]),
 
-  cliPage("installation", "CLI installation", "Run the bundled MemoGrafter command-line tools.", `npm install memo-grafter\nnpx memo-grafter --help`, ["The CLI ships with the package.", "Using `npx` keeps the command aligned with the project version.", "Run commands from the server-side project directory."]),
+  cliPage("installation", "CLI installation", "Run the bundled MemoGrafter command-line tools.", `npm install memo-grafter\nnpx memo-grafter --help`, ["The CLI ships with the package.", "Using npx keeps the command aligned with the project version.", "Run init, migrate, and doctor from your server-side project."]),
   cliPage("studio", "studio", "Start the local MemoGrafter Studio server.", `npx memo-grafter studio`, ["Verifies the database schema before serving Studio.", "Uses localhost port 2891 or the next available port.", "Resolves database settings from flags, environment, and generated config."]),
   cliPage("init", "init", "Generate the project-local MemoGrafter schema and configuration files.", `npx memo-grafter init`, ["Creates files under `src/memo-grafter/`.", "Keeps generated memory configuration reviewable in source control.", "Does not migrate the database."]),
   cliPage("migrate", "migrate", "Create or update MemoGrafter-owned PostgreSQL infrastructure.", `npx memo-grafter migrate`, ["Requires a reachable PostgreSQL database.", "Manages required extensions and `mg_*` tables only.", "Application-owned tables remain in the application migration system."]),
@@ -206,7 +207,7 @@ export const expandedDocsPages: DocPage[] = [
         "`0`: all required checks passed.",
         "`1`: one or more required checks failed.",
         "`2`: invalid command usage, such as an unknown option or `--db` without a value.",
-        "Optional Redis warnings do not produce exit code `1`.",
+        "Optional cache Redis warnings do not produce exit code `1`; configured queue failures are required failures.",
       ],
       body: [
         "Doctor stores checks internally as structured `passed`, `failed`, `warning`, or `skipped` results so future output modes can reuse the same diagnostics.",
@@ -221,8 +222,20 @@ export const expandedDocsPages: DocPage[] = [
         "Use `npx memo-grafter doctor --help` to inspect options supported by the installed package version.",
       ],
     },
-  ]),
-  cliPage("config", "config", "Understand generated configuration and CLI resolution rules.", `npx memo-grafter init`, ["CLI flags take precedence when supported.", "Environment variables are resolved next.", "Generated `src/memo-grafter/mg.config.ts` supplies project defaults.", "Keep secrets out of committed configuration."]),
+{
+  "title": "Ingestion and configured Redis",
+  "body": [
+    "Use npx memo-grafter doctor --ingestion for read-only durable ingestion diagnostics. Doctor and Studio never apply reconciliation repairs. Cache Redis failure is optional; explicitly configured queue Redis failure is required."
+  ],
+  "links": [
+    {
+      "label": "Recovery guide",
+      "href": "/docs/guides/durable-ingestion"
+    }
+  ]
+}
+]),
+  cliPage("config", "config", "Understand generated configuration and CLI resolution rules.", `npx memo-grafter init`, ["CLI flags take precedence when supported.", "Environment variables are resolved next.", "Generated `src/memo-grafter/mg.config.ts` supplies project defaults.", "Keep secrets out of committed configuration.", "clustering.enabled opts into domains; drift.topicAssignment controls stable-topic reuse.", "Per-ingestion qualityPolicy and sourceReliability control quality admission; supported operation boundaries accept signal and timeoutMs."]),
   page("cli/environment-variables", "Environment variables", "Configure database, providers, Redis, and local tooling.", "CLI", [{ title: "Variables", code: [{ label: ".env", code: `DATABASE_URL=postgres://...\nOPENAI_API_KEY=...\nANTHROPIC_API_KEY=...\nGEMINI_API_KEY=...\nREDIS_URL=redis://localhost:6379` }] }, { title: "When they are required", bullets: ["`DATABASE_URL` configures the built-in PostgreSQL store and CLI.", "Provider keys are required only for adapters you use.", "`REDIS_URL` is required for queue mode or the optional recall cache."] }, { title: "Security", body: ["Load secrets only in the server environment and exclude local environment files from source control."] }]),
 
   examplePage("simple-chatbot", "Simple chatbot", "A single-session assistant that recalls user preferences.", `${commonAgent}\nconst reply = await agent.invoke("Plan a concise weekend itinerary.");`, ["One stable session per conversation.", "Invoke-time recall followed by background ingestion.", "Studio inspection during development."]),
@@ -232,10 +245,138 @@ export const expandedDocsPages: DocPage[] = [
   examplePage("research-assistant", "Research assistant", "A research workflow that remembers sources, claims, questions, and evolving conclusions.", `await agent.ingest(paperText, { tags: ["source:paper-42"] });\nconst evidence = await agent.recall("evidence about retrieval quality", { limit: 12 });`, ["Source tags preserve provenance.", "Questions and references remain separate memory types.", "Conflicts expose competing claims instead of silently overwriting them."]),
   examplePage("multi-agent-memory", "Multi-agent memory", "A fleet of specialized workers that shares selected knowledge.", `const fleet = new MemoGrafterFleet(config, { id: "research-fleet" });\nconst scout = await fleet.createWorker({ color: "scout" });\nconst writer = await fleet.createWorker({ color: "writer" });`, ["Workers retain local task context.", "A synthetic fleet session stores shared facts.", "The conductor coordinates selective transfer with provenance."]),
 
-  advancedPage("architecture", "Architecture", "Understand the runtime layers and their responsibilities.", [{ title: "Runtime layers", bullets: ["`MemoGrafterAgent` exposes the session-oriented application API.", "Core orchestration wires storage, adapters, pipelines, queueing, and cache.", "Pipelines transform messages into graph memory and memory back into prompt context.", "`GraphStore` isolates persistence from orchestration."] }, { title: "End-to-end flow", diagram: "memory-graph", body: ["Messages are segmented into topics, enriched with atomic memories and graph edges, then retrieved by semantic relevance and lifecycle state."] }]),
-  advancedPage("memory-pipeline", "Memory Pipeline", "Follow data from raw input to durable graph memory.", [{ title: "Stages", diagram: "ingestion-flow", bullets: ["Append raw input and track the ingest cursor.", "Detect topical segments and reentry.", "Summarize topics and extract atomic memories.", "Embed, store, and connect graph records."] }, { title: "Reliability", body: ["Advance the ingest cursor only after graph writes succeed so retries do not silently skip material."] }]),
-  advancedPage("retrieval-pipeline", "Retrieval Pipeline", "Understand semantic search, lifecycle filters, ranking, and prompt assembly.", [{ title: "Stages", bullets: ["Embed the query.", "Search active memory vectors.", "Apply lifecycle and metadata filters.", "Rank by semantic relevance and confidence.", "Group by topic and trim to the token budget."] }, { title: "Evaluation", body: ["Measure both retrieval relevance and the downstream answer quality produced from the assembled context."] }]),
-  advancedPage("graph-store", "Graph Store", "Implement or operate the persistence boundary behind MemoGrafter.", [{ title: "Responsibilities", bullets: ["Message buffers and ingest cursors.", "Topic, memory, and edge persistence.", "Vector search and graph traversal.", "Lifecycle mutations and graft provenance.", "Fleet metadata and cleanup."] }, { title: "Built-in store", body: ["PostgresGraphStore uses PostgreSQL and pgvector. Schema changes should remain compatible with CLI-managed `mg_*` migrations."] }]),
+  advancedPage("architecture", "Architecture", "Understand the runtime layers and their responsibilities.", [
+{
+  "title": "Runtime responsibilities",
+  "body": [
+    "MemoGrafterAgent owns conversational invocation; MemoGrafter coordinates application-owned sessions. Ingestion constructs graph memory, retrieval selects current context, and explicit grafting assembles or copies selected memory. GraphStore isolates persistence. CLI and Studio use provider-independent storage, schema, and preview entry points."
+  ],
+  "diagram": "memory-hierarchy"
+},
+{
+  "title": "Durable preparation and commit",
+  "body": [
+    "Built-in durable ingestion accepts messages with a run identity before provider work. Preparation reads the accepted range, segments it, validates extracted provenance and quality, and assigns episodes to stable topics. Commit locks the session and run, verifies the cursor, and atomically stores required graph records, canonical decisions, evidence, lifecycle edges, cursor, and completion."
+  ],
+  "diagram": "durable-ingestion-flow"
+},
+{
+  "title": "Read path and invocation",
+  "body": [
+    "Retrieval searches memory, episode, and stable-topic embeddings. Adaptive selection applies lifecycle and scope filters and allocates bounded fact and episode context. Query contextualization can rewrite an underspecified query using recent messages. Invocation planning composes pins, recalled facts, episode context, and recent raw history before the provider call."
+  ]
+},
+{
+  "title": "Independent boundaries",
+  "body": [
+    "Quality admission and decay default to observation. Required database/provider work fails its operation; optional cache or enrichment failures report warnings. Cluster classification is disabled by default, runs after commit, and cannot change retrieval ranking or prompts. Crawler passes annotate lifecycle rather than deleting evidence."
+  ],
+  "links": [
+    {
+      "label": "Memory pipeline",
+      "href": "/docs/advanced/memory-pipeline"
+    },
+    {
+      "label": "Retrieval pipeline",
+      "href": "/docs/advanced/retrieval-pipeline"
+    },
+    {
+      "label": "Graph Store",
+      "href": "/docs/advanced/graph-store"
+    }
+  ]
+}
+]),
+  advancedPage("memory-pipeline", "Memory Pipeline", "Follow data from raw input to durable graph memory.", [
+{
+  "title": "Accept and prepare",
+  "body": [
+    "Durable completed exchanges allocate immutable absolute message indexes with a run record before provider work. Workers load accepted messages from PostgreSQL. Preparation is graph-write free and validates speaker/source references before quality admission and memory embedding."
+  ],
+  "diagram": "durable-ingestion-flow"
+},
+{
+  "title": "Topic and memory construction",
+  "body": [
+    "Drift detection produces segments. Each segment has an episode; TopicAssigner reuses a sufficiently similar active stable topic or creates one. Canonical reconciliation turns repeated observations into evidence, with conflict or supersession decisions committed alongside required graph state."
+  ]
+},
+{
+  "title": "Atomic commit and best effort",
+  "body": [
+    "Under session/run locks, commit verifies the expected cursor, writes required segments, episodes, topics, canonical memories and evidence, advances the cursor, and completes the run. Optional semantic enrichment, telemetry, and post-commit clustering can complete with warnings. Compatibility custom-store paths have different capabilities."
+  ],
+  "links": [
+    {
+      "label": "Durable ingestion",
+      "href": "/docs/guides/durable-ingestion"
+    },
+    {
+      "label": "Canonical memories",
+      "href": "/docs/concepts/canonical-memory"
+    },
+    {
+      "label": "Memory quality",
+      "href": "/docs/concepts/memory-quality"
+    }
+  ]
+}
+]),
+  advancedPage("retrieval-pipeline", "Retrieval Pipeline", "Understand semantic search, lifecycle filters, ranking, and prompt assembly.", [
+{
+  "title": "Candidate generation",
+  "body": [
+    "Optionally contextualize the query from bounded recent messages, then create the retrieval embedding. Search memory, stable-topic, and episode vectors. Topic-only matches can load bounded active child memories. Apply session/tag scope and lifecycle filtering."
+  ]
+},
+{
+  "title": "Ranking and selection",
+  "body": [
+    "Semantic similarity determines rank, with evidence quality only breaking ties. Adaptive topic selection uses maxTopics, relativeScoreFloor, and scoreGapThreshold; fact and episode budgets remain separate. minSimilarity no longer cuts off recall candidate generation."
+  ]
+},
+{
+  "title": "Context and metadata",
+  "body": [
+    "context() bypasses recall caching and prepends pinned topics under their separate budget. Episode summaries form their own prompt block. Cluster metadata is hydrated for selected topic/session pairs after selection, including episode-only references; it changes neither cache identity nor prompts."
+  ]
+},
+{
+  "title": "Cache and degraded results",
+  "body": [
+    "Optional recall caching stores candidates, not final assembled prompts. Canonical reinforcement, lifecycle changes, and quality updates participate in revision hashes; quality candidates use the candidates-v3-quality namespace. Cache failures can return degraded results with warnings; required storage or embedder failures reject."
+  ],
+  "links": [
+    {
+      "label": "Retrieval tuning",
+      "href": "/docs/advanced/retrieval-tuning"
+    },
+    {
+      "label": "Errors & readiness",
+      "href": "/docs/guides/errors-and-readiness"
+    }
+  ]
+}
+]),
+  advancedPage("graph-store", "Graph Store", "Implement or operate the persistence boundary behind MemoGrafter.", [{ title: "Responsibilities", bullets: ["Message buffers and ingest cursors.", "Topic, memory, and edge persistence.", "Vector search and graph traversal.", "Lifecycle mutations and graft provenance.", "Fleet metadata and cleanup."] }, { title: "Built-in store", body: ["PostgresGraphStore uses PostgreSQL and pgvector. Schema changes should remain compatible with CLI-managed `mg_*` migrations."] },
+{
+  "title": "Optional durable and domain capabilities",
+  "body": [
+    "The built-in PostgreSQL store supports atomic run acceptance, transitions and leases, prepared graph commits, reconciliation inspection, immutable evidence, episodes, and cluster metadata. Custom stores can omit optional capabilities, but analyzeDetailed requires durable support and clustering emits warnings when enabled without support.",
+    "Canonical reconciliation must preserve evidence idempotency and lifecycle edges. Domain writes must serialize within the session and recheck both topic revision and catalog digest; creation and membership must be atomic. Provider calls run outside the transaction."
+  ],
+  "links": [
+    {
+      "label": "GraphStore contract",
+      "href": "/docs/api-reference/types/graph-store"
+    },
+    {
+      "label": "Durable ingestion",
+      "href": "/docs/guides/durable-ingestion"
+    }
+  ]
+}
+]),
   advancedPage("performance", "Performance", "Tune latency, model usage, retrieval size, and ingestion throughput.", [{ title: "Highest-impact controls", bullets: ["Bound recall with `limit` and `tokenBudget`.", "Move ingestion to queue mode when it affects response latency.", "Cache safe recall workloads with explicit invalidation expectations.", "Batch embeddings where the adapter supports it."] }, { title: "Measure", bullets: ["Invoke latency and first-token time.", "Ingestion lag and queue depth.", "Embedding and completion usage.", "Recall precision, empty-result rate, and prompt size."] }]),
   advancedPage("scaling", "Scaling", "Scale memory workloads across workers, sessions, and databases.", [{ title: "Application scaling", bullets: ["Use stable globally unique session identifiers.", "Keep workers stateless outside shared stores.", "Use Redis-backed queue mode for distributed ingestion.", "Apply database pooling and pgvector index maintenance."] }, { title: "Isolation", body: ["Enforce tenant and user authorization in the application layer before resolving any session or memory identifier."] }]),
   advancedPage("prompt-design", "Prompt Design", "Inject memory clearly without allowing recalled text to override application policy.", [{ title: "Principles", bullets: ["Label recalled content as memory, not instructions.", "Keep system policy separate and higher priority.", "Include provenance when it helps the model resolve ambiguity.", "Use token budgets and relevance thresholds to reduce distraction."] }, { title: "Validation", body: ["Test conflicting, stale, malicious, empty, and oversized memory alongside ordinary happy-path conversations."] }]),

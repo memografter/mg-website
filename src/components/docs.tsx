@@ -84,6 +84,17 @@ export function DocsArticle({ page }: { page: DocPage }) {
                 ))}
               </div>
             ) : null}
+            {section.table ? (
+              <div className="mt-5 overflow-x-auto rounded-md border border-white/10">
+                <table className="w-full min-w-[540px] text-left text-sm leading-6 text-slate-300">
+                  <caption className="sr-only">{section.title}</caption>
+                  <thead className="bg-white/[0.04] text-white">
+                    <tr>{section.table.headers.map(header => <th key={header} scope="col" className="px-4 py-3 font-semibold">{header}</th>)}</tr>
+                  </thead>
+                  <tbody>{section.table.rows.map((row, index) => <tr key={index} className="border-t border-white/10">{row.map((cell, column) => <td key={column} className="px-4 py-3 align-top">{renderInlineCode(cell)}</td>)}</tr>)}</tbody>
+                </table>
+              </div>
+            ) : null}
             {section.warning ? (
               <div role="alert" className="mt-5 flex gap-3 rounded-lg border border-rose-300/25 bg-rose-300/[0.07] p-4 text-rose-100">
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-300" aria-hidden="true" />
@@ -158,7 +169,7 @@ function DocsDiagram({ type }: { type: NonNullable<DocPage["sections"][number]["
   if (type === "intro-graph") {
     return (
       <div className="docs-diagram docs-graph-diagram">
-        <svg className="docs-graph-svg" viewBox="0 0 1120 260" role="img" aria-label="Messages are segmented into topic nodes, which produce structured memories, graph edges, and grafting; structured memories support recall.">
+        <svg className="docs-graph-svg" viewBox="0 0 1120 260" role="img" aria-label="Messages create bounded episodes assigned to stable topics. Canonical memories retain evidence and support recall, alongside graph edges and explicit grafting.">
           <defs>
             <marker id="docs-intro-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
               <path d="M 0 0 L 10 5 L 0 10 z" />
@@ -178,15 +189,15 @@ function DocsDiagram({ type }: { type: NonNullable<DocPage["sections"][number]["
           </g>
           <g className="docs-graph-node docs-graph-node-segment" transform="translate(250 104)">
             <rect width="180" height="52" rx="9" />
-            <text x="90" y="27">Topic segmentation</text>
+            <text x="90" y="27">Segments / episodes</text>
           </g>
           <g className="docs-graph-node docs-graph-node-topic" transform="translate(480 104)">
             <rect width="140" height="52" rx="9" />
-            <text x="70" y="27">Topic nodes</text>
+            <text x="70" y="27">Stable topics</text>
           </g>
           <g className="docs-graph-node docs-graph-node-memory" transform="translate(700 19)">
             <rect width="180" height="52" rx="9" />
-            <text x="90" y="27">Structured memories</text>
+            <text x="90" y="27">Memories / evidence</text>
           </g>
           <g className="docs-graph-node docs-graph-node-edges" transform="translate(700 104)">
             <rect width="160" height="52" rx="9" />
@@ -206,9 +217,12 @@ function DocsDiagram({ type }: { type: NonNullable<DocPage["sections"][number]["
   }
 
   const diagrams = {
-    "memory-graph": ["Messages", "Segments", "Topic nodes", "Memory nodes", "Graph edges"],
+    "memory-hierarchy": ["Session", "Optional cluster", "Stable topic", "Episodes", "Memories / evidence"],
+    "external-chat-flow": ["context()", "Application model call", "Completed exchange", "analyzeDetailed()"],
+    "durable-ingestion-flow": ["Accept messages + run", "Prepare graph", "Atomic commit", "Complete / warnings"],
+    "memory-graph": ["Messages", "Episodes", "Stable topics", "Canonical memories", "Evidence / edges"],
     "invoke-flow": ["invoke()", "Recall facts", "LLM response", "Background ingest", "Graph memory"],
-    "ingestion-flow": ["Raw text", "Segment", "Embed", "Store", "Link graph"],
+    "ingestion-flow": ["Input", "Segment / extract", "Validate provenance / quality", "Assign topic / episode", "Reconcile / commit"],
     "graft-flow": ["Source memory", "Select topics", "Provenance", "Target session"],
     "lifecycle-flow": ["Active memory", "Forget or suppress", "Filtered recall", "Studio audit", "Restore"],
     "recall-graft-flow": ["Choose intent", "Recall facts", "Assemble topics", "Copy when needed"],

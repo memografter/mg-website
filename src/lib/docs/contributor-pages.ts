@@ -143,16 +143,15 @@ docker compose exec redis redis-cli ping`,
     {
       title: "Build, initialize, and migrate",
       body: [
-        "Initialization creates the project-local MemoGrafter configuration and schema reference. Migration enables `vector` and `pgcrypto` and creates or updates MemoGrafter-owned `mg_*` tables. It is safe to run again.",
+        "In a cloned SDK checkout, use the development migration and Doctor runners without scaffolding consumer configuration. Consumer applications use npx memo-grafter init, migrate, and doctor. Migration manages only MemoGrafter-owned infrastructure.",
       ],
       code: [
         {
           label: "terminal",
           language: "bash",
           code: `npm run build
-npx memo-grafter init
-npx memo-grafter migrate
-npx memo-grafter doctor`,
+npm run migrate
+npm run doctor`,
         },
       ],
     },
@@ -339,7 +338,19 @@ migrations/       Historical SQL migration references`,
         "`examples/` demonstrates package-user workflows and should use public APIs rather than internal implementation shortcuts.",
       ],
     },
-  ]),
+{
+  "title": "Durable memory implementation map",
+  "body": [
+    "src/ingestion/types.ts defines durable runs and receipts. Ingestion preparation and commit span the pipeline and store. src/ingestion/clustering handles optional domains; src/utils/memoryQuality.ts owns normalization, admission, reinforcement and persistence. src/invocation centralizes prompt planning. Schema metadata and migrations must evolve together."
+  ]
+},
+{
+  "title": "Cross-module review boundaries",
+  "body": [
+    "Changes to accepted ranges, cursor advancement, or canonical evidence affect ingestion and storage. Retrieval changes must preserve lifecycle filtering and keep domain metadata outside ranking. Fleet copies must retain quality/provenance and re-scope clusters. Studio and CLI consume the same contracts as runtime code."
+  ]
+}
+]),
 
   contributorPage("creating-issues", "Creating issues", "Search for existing work, discuss scope before implementation, and provide enough context for maintainers to act.", [
     {
@@ -575,5 +586,12 @@ git push -u origin feat/short-description`,
         "Accepted pull requests are expected to be squash-merged so `main` receives one focused commit. Keep commits understandable during review, but write the pull-request title and description so they can represent the final merged change.",
       ],
     },
-  ]),
+{
+  "title": "Current memory regression coverage",
+  "body": [
+    "Cover durable acceptance, idempotency, atomic commits, retry/lease transitions, reconciliation, and shutdown for ingestion changes. Quality changes need provenance/admission, reinforcement, migration, tie-breaking, and observe/enforce coverage. Episodes and clustering need stable-topic reuse, session isolation, revision races, cooldown, and retrieval-invariance checks.",
+    "Use the manual memory-quality test for live extraction review; it writes reports and retains its session in Studio. npm run manual:clusters uses isolated PostgreSQL schemas without provider calls. npm run accuracy:clusters -- /path/to/mg.config.ts evaluates configured providers without database writes. Live provider suites have separate environment and cost requirements."
+  ]
+}
+]),
 ];

@@ -14,7 +14,11 @@ export type DocSection = {
   };
   links?: DocRelatedLink[];
   code?: DocCodeBlock[];
+  table?: { headers: string[]; rows: string[][] };
   diagram?:
+    | "memory-hierarchy"
+    | "external-chat-flow"
+    | "durable-ingestion-flow"
     | "intro-graph"
     | "memory-graph"
     | "invoke-flow"

@@ -115,7 +115,24 @@ try {
     { title: "Best practices", bullets: ["Preserve a stable `source` value for provenance.", "Use normalized tags for project and document grouping.", "Split extremely large imports into meaningful bounded sources.", "Review extraction quality in Studio before changing drift settings.", "Wait for queue workers before expecting asynchronously ingested memory to appear."] },
     { title: "Common mistakes", bullets: ["Manually ingesting an exchange already processed through `invoke()`.", "Using `replace: true` when content should be appended.", "Expecting raw text to appear in public chat history.", "Treating `remember()` as a deterministic database insert.", "Changing embedding dimensions without migrating the vector schema."] },
     { title: "Related documentation", links: [api("ingestText()", "/docs/api-reference/memo-grafter-agent/ingest-text", "Raw-text ingestion contract."), api("remember()", "/docs/api-reference/memo-grafter-agent/remember", "Store an explicit natural-language fact."), api("Memory Pipeline", "/docs/advanced/memory-pipeline", "Understand the internal construction stages."), api("Inspecting & Reviewing Memory", "/docs/guides/inspecting-reviewing-memory", "Verify extracted topics and facts.")] },
-  ]),
+{
+  "title": "Selective extraction and reconciliation",
+  "body": [
+    "Provenance validation rejects unsupported speaker ownership and message references before quality admission and embedding. Canonical reconciliation records equivalent observations as evidence and commits required lifecycle relationships atomically.",
+    "Durable completed-exchange ingestion through analyzeDetailed returns a receipt. Other ingestion APIs retain their own inline or queue completion contracts; do not assume every enqueue call returns durable run state."
+  ],
+  "links": [
+    {
+      "label": "Canonical memories",
+      "href": "/docs/concepts/canonical-memory"
+    },
+    {
+      "label": "Durable ingestion",
+      "href": "/docs/guides/durable-ingestion"
+    }
+  ]
+}
+]),
 
   guide("recall-memory-injection", "Recall & memory injection", "Choose the correct read path for retrieving atomic facts, assembling broader topic context, or letting invoke() handle memory automatically.", "8 minutes", "Intermediate", [
     { title: "Overview", body: ["Recall and grafting both turn stored graph memory into useful context, but they operate at different levels. Recall ranks atomic memory facts; grafting assembles broader topic context and can expand through graph neighbours."] },
@@ -124,9 +141,8 @@ try {
     { title: "Read-path decision flow", diagram: "recall-graft-flow" },
     { title: "Step 1: Recall structured facts", code: [{ label: "recall.ts", language: "ts", code: `const result = await agent.recall("deployment preferences", {
   limit: 8,
-  minSimilarity: 0.55,
+  
   tokenBudget: 1000,
-  scoring: { similarityWeight: 0.7, confidenceWeight: 0.3 },
 });
 
 console.log(result.facts);
@@ -159,10 +175,28 @@ try {
 } finally {
   await agent.close();
 }` }] },
-    { title: "How filtering and ranking work", bullets: ["Normal recall excludes decayed, superseded, forgotten, and suppressed-topic memories.", "`minSimilarity` is the vector-search floor.", "Returned facts are ranked using configured similarity and confidence weights.", "Facts are grouped by parent topic and stopped at the token budget.", "Tag scope can keep recall session-local or intentionally search tagged memory across sessions."] },
+    { title: "How filtering and ranking work", bullets: ["Normal recall excludes decayed, superseded, forgotten, and suppressed-topic memories.", "`minSimilarity` is deprecated for recall; use bounded candidates and adaptive selection.", "Returned facts are ranked by semantic similarity, with evidence quality breaking ties.", "Facts are grouped by parent topic and stopped at the token budget.", "Tag scope can keep recall session-local or intentionally search tagged memory across sessions."] },
     { title: "Common mistakes", bullets: ["Using grafting when only a few atomic facts are required.", "Copying memory into another session when a read-only preview is enough.", "Treating `systemPrompt` as application policy rather than untrusted memory context.", "Increasing `limit` without checking the token budget.", "Debugging thresholds before confirming ingestion and lifecycle state."] },
     { title: "Related documentation", links: [api("recall()", "/docs/api-reference/memo-grafter-agent/recall", "Retrieve ranked active memory facts."), api("graft()", "/docs/api-reference/memo-grafter-agent/graft", "Assemble context from selected topics."), api("Grafting Memory", "/docs/guides/grafting-memory", "Preview, expand, copy, and audit topic memory."), api("Retrieval Tuning", "/docs/advanced/retrieval-tuning", "Tune ranking and debug missing results.")] },
-  ]),
+{
+  "title": "Adaptive selection and episode context",
+  "body": [
+    "candidateLimit bounds nearest-neighbour candidates (default 40), while limit bounds returned facts (default 10). selection.maxTopics, relativeScoreFloor (default 0.75), and scoreGapThreshold (default 0.15) control topic selection. minSimilarity is deprecated for recall candidate generation.",
+    "Episode candidates use independent defaults of 40 candidates, three episodes, and 300 episode tokens. Result metadata exposes topicMatches, selection, episodes, and query contextualization. Cluster metadata is loaded after selection without changing prompts.",
+    "context() prepends active pinned topics and bypasses recall caching. Direct recall is query-driven; supplying recent messages enables optional query contextualization."
+  ],
+  "links": [
+    {
+      "label": "Topic pinning",
+      "href": "/docs/guides/topic-pinning"
+    },
+    {
+      "label": "RetrieverConfig",
+      "href": "/docs/api-reference/types/retriever-config"
+    }
+  ]
+}
+]),
 
   guide("grafting-memory", "Grafting memory", "Select broader topic context, preview it as a prompt, and copy active memory into another agent with traceable provenance.", "10 minutes", "Intermediate", [
     { title: "Overview", body: ["Grafting works with topic nodes rather than only individual facts. You can assemble prompt context from explicit topics, find topics semantically, or absorb selected topic and memory nodes into another agent session."] },
@@ -213,7 +247,13 @@ try {
 if (entry) await targetAgent.removeGraft(entry.nodeId);` }], body: ["`removeGraft()` is scoped to the current agent session and only accepts nodes registered as grafts there."] },
     { title: "Common mistakes", bullets: ["Confusing a read-only graft preview with absorption.", "Copying all source topics when a semantic selection would be safer.", "Ignoring provenance after cross-agent transfer.", "Expecting inactive source memory to be copied.", "Using high hop depth without inspecting prompt relevance and size."] },
     { title: "Related documentation", links: [api("graftByRelevance()", "/docs/api-reference/memo-grafter-agent/graft-by-relevance", "Select semantic seeds and assemble context."), api("absorbFromAgent()", "/docs/api-reference/memo-grafter-agent/absorb-from-agent", "Copy selected memory from another agent."), api("Multi-session Memory", "/docs/guides/multi-session-memory", "Design isolated source and destination sessions."), api("Graph Expansion & Topic Re-entry", "/docs/advanced/graph-expansion-topic-reentry", "Understand neighbours, hop depth, and reentry edges.")] },
-  ]),
+{
+  "title": "Quality and domains during transfer",
+  "body": [
+    "Graft and copy paths preserve quality, lifecycle state, and provenance. Topic domains belong to a session and are not graph edges: source domain membership is never reused as a destination cluster ID. SDK absorption can classify eligible copies; Studio/store-only copies can use bounded backfill."
+  ]
+}
+]),
 
   guide("multi-session-memory", "Multi-session memory", "Keep conversations isolated and transfer only the context a destination session actually needs.", "10 minutes", "Intermediate", [
     { title: "Overview", body: ["Each `MemoGrafterAgent` owns an independent generated session. Separate sessions prevent accidental context mixing; explicit grafting and absorption provide controlled transfer with provenance."] },
@@ -276,7 +316,7 @@ console.log(agent.getSessionTags());` }], body: ["Tags are trimmed, lowercased, 
   tags: ["tenant:acme", "project:memo-grafter"],
   tagMode: "all",
   scope: "tagged",
-  minSimilarity: 0.4,
+  
 });` }], body: ["`scope: tagged` is an explicit cross-session operation. Authorize the caller before issuing it."] },
     { title: "Full example", code: [{ label: "project-scope.ts", language: "ts", code: `${agentSetup}
 
@@ -355,14 +395,14 @@ response.end();` }] },
     { title: "When to use this", bullets: ["Validate extraction before shipping a workflow.", "Explain why a memory appeared in a prompt.", "Debug a missing or stale result.", "Review forgotten, suppressed, conflicting, or superseded records.", "Trace memory copied from another session."] },
     { title: "Step 1: Reproduce recall", code: [{ label: "recall-debug.ts", language: "ts", code: `const result = await agent.recall("refund policy", {
   limit: 10,
-  minSimilarity: 0.4,
+  
 });
 
 console.table(result.facts.map((fact) => ({
   id: fact.id,
   value: fact.value,
   similarity: fact.similarity,
-  confidence: fact.confidence,
+  quality: fact.quality,
 })));` }] },
     { title: "Step 2: Inspect the graph snapshot", code: [{ label: "snapshot.ts", language: "ts", code: `const snapshot = await agent.getGraphSnapshot();
 console.log(snapshot.snapshotNodes);
@@ -373,8 +413,8 @@ const diff = await agent.getMemoryDiff(oldMemoryId, newMemoryId);
 
 console.log(history.entries);
 console.log(diff.changedFields);` }] },
-    { title: "Step 4: Review in Studio", bullets: ["Open the session in Graph View and select the parent topic.", "Inspect memory confidence, source, tags, lifecycle flags, and edges.", "Use Prompt Preview with the original query.", "Compare the exact generated prompt before adjusting retrieval settings.", "Apply supported lifecycle actions only after resolving the correct node."] },
-    { title: "Full review workflow", code: [{ label: "review.ts", language: "ts", code: `const recall = await agent.recall(query, { limit: 10, minSimilarity: 0.4 });
+    { title: "Step 4: Review in Studio", bullets: ["Open the session in Graph View and select the parent topic.", "Inspect memory quality, source, tags, lifecycle flags, and edges.", "Use Prompt Preview with the original query.", "Compare the exact generated prompt before adjusting retrieval settings.", "Apply supported lifecycle actions only after resolving the correct node."] },
+    { title: "Full review workflow", code: [{ label: "review.ts", language: "ts", code: `const recall = await agent.recall(query, { limit: 10,  });
 const snapshot = await agent.getGraphSnapshot();
 
 for (const fact of recall.facts) {
@@ -383,8 +423,8 @@ for (const fact of recall.facts) {
   )?.lifecycle;
   console.log({ fact, lifecycle });
 }` }] },
-    { title: "Why memory may be missing", bullets: ["Ingestion has not completed yet.", "Extraction created a topic summary but no matching atomic memory.", "The query embedding falls below `minSimilarity`.", "The fact was trimmed by `limit` or `tokenBudget`.", "The memory is decayed, superseded, forgotten, or attached to a suppressed topic.", "Tags or scope exclude the record."] },
-    { title: "Best practices", bullets: ["Debug with the exact production query and scope.", "Record source metadata during ingestion.", "Review both similarity and extraction confidence.", "Use history and diff for changing facts rather than reading only the newest row.", "Keep Studio local and do not expose its internal API publicly."] },
+    { title: "Why memory may be missing", bullets: ["Ingestion has not completed yet.", "Extraction created a topic summary but no matching atomic memory.", "Adaptive selection excludes weak candidates or topic blocks.", "The fact was trimmed by `limit` or `tokenBudget`.", "The memory is decayed, superseded, forgotten, or attached to a suppressed topic.", "Tags or scope exclude the record."] },
+    { title: "Best practices", bullets: ["Debug with the exact production query and scope.", "Record source metadata during ingestion.", "Review both similarity and evidence quality.", "Use history and diff for changing facts rather than reading only the newest row.", "Keep Studio local and do not expose its internal API publicly."] },
     { title: "Related documentation", links: [api("Graph Snapshot", "/docs/api-reference/memo-grafter-agent/get-graph-snapshot", "Read lifecycle-aware inspection data."), api("Memory history", "/docs/api-reference/memo-grafter-agent/get-memory-history", "Inspect a fact lineage."), api("Prompt Preview", "/docs/studio/prompt-preview", "See the exact prompt and token usage."), api("Retrieval Tuning", "/docs/advanced/retrieval-tuning", "Diagnose ranking and threshold behavior.")] },
   ]),
 
@@ -434,7 +474,19 @@ try {
     { title: "Memory modes", bullets: ["`local`: only the worker session.", "`fleet`: only the synthetic shared fleet session.", "`both`: local worker memory plus shared fleet memory.", "The default is `local` unless the fleet or worker overrides it."] },
     { title: "Common mistakes", bullets: ["Putting worker-specific private context into shared fleet memory.", "Using the reserved `conductor` color for a worker.", "Assuming shared recall copies memory into a worker graph.", "Skipping authorization before cross-worker transfer.", "Closing an underlying core independently when the fleet owns it."] },
     { title: "Related documentation", links: [api("MemoGrafterFleet", "/docs/api-reference/fleet-memory/memo-grafter-fleet-index", "Construct and manage a fleet."), api("Multi-agent example", "/docs/examples/multi-agent-memory", "See a practical worker workflow."), api("Grafting Memory", "/docs/guides/grafting-memory", "Understand copied-memory provenance."), api("Fleet types", "/docs/api-reference/types/memo-grafter-fleet-options", "Configure workers and memory modes.")] },
-  ]),
+{
+  "title": "Evidence and destination domains",
+  "body": [
+    "Fleet workers and shared memory retain explicit scope and graft provenance. Copied memories preserve structured quality. Absorption does not carry a source-session cluster ID into the destination; destination topics can be classified independently."
+  ],
+  "links": [
+    {
+      "label": "Topic domains",
+      "href": "/docs/guides/topic-domains"
+    }
+  ]
+}
+]),
 
   guide("pruning", "Pruning memory safely", "Reduce noisy active memory through deliberate lifecycle policy without treating decay, suppression, forgetting, and deletion as interchangeable.", "8 minutes", "Intermediate", [
     { title: "Overview", body: ["MemoGrafter does not expose one universal prune operation. Pruning is an application review workflow that selects the correct lifecycle action for stale, obsolete, incorrect, or overly broad memory while preserving auditability by default."] },
@@ -453,7 +505,7 @@ await agent.suppressTopic(topicId);` }] },
     { title: "Step 4: Verify active recall", code: [{ label: "verify.ts", language: "ts", code: `const after = await agent.recall(originalQuery);
 console.log(after.facts.some((fact) => fact.id === memoryId)); // false` }] },
     { title: "Best practices", bullets: ["Change memory in small reviewed batches.", "Keep application-level reasons and actor identity in your own audit system.", "Compare recall quality before and after policy changes.", "Use Studio and snapshots because active reads intentionally hide inactive rows.", "Treat hard deletion as a separate retention and privacy design."] },
-    { title: "Common mistakes", bullets: ["Calling every inactive state ‘deleted’.", "Forgetting a memory when temporary topic suppression is intended.", "Physically deleting rows before reviewing provenance and edges.", "Pruning solely by age without considering confidence or use case.", "Expecting suppression to restore independently forgotten memories."] },
+    { title: "Common mistakes", bullets: ["Calling every inactive state ‘deleted’.", "Forgetting a memory when temporary topic suppression is intended.", "Physically deleting rows before reviewing provenance and edges.", "Pruning solely by age without considering evidence, stability, salience, or use case.", "Expecting suppression to restore independently forgotten memories."] },
     { title: "Related documentation", links: [api("Forgetting & Privacy", "/docs/guides/forgetting-privacy", "Implement a user-directed forget workflow."), api("Conflict Detection & Versioning", "/docs/advanced/conflict-detection-versioning", "Understand crawler lifecycle annotations."), api("Lifecycle Actions", "/docs/studio/lifecycle-actions", "Review supported actions in Studio."), api("suppressTopic()", "/docs/api-reference/memo-grafter-agent/suppress-topic", "Temporarily hide an entire topic.")] },
   ]),
 
@@ -462,7 +514,7 @@ console.log(after.facts.some((fact) => fact.id === memoryId)); // false` }] },
     { title: "When to use this", bullets: ["A user asks the application to stop using a retained fact.", "An extracted memory is incorrect or inappropriate for future retrieval.", "A reviewed batch of exact memory IDs should leave active recall.", "The application needs an auditable soft lifecycle action."] },
     { title: "Step 1: Resolve the exact memory", code: [{ label: "find-memory.ts", language: "ts", code: `const result = await agent.recall("food preference", {
   limit: 10,
-  minSimilarity: 0.4,
+  
 });
 
 const target = result.facts.find((fact) => fact.value.includes("mushrooms"));

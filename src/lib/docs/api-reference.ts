@@ -1,6 +1,8 @@
+import contracts from "./contracts.json";
+import { currentApiDefinitions, currentErrorPage } from "./current-api";
 import type { DocNavIcon, DocNavNode, DocPage, DocRelatedLink, DocSection } from "./types";
 
-type ApiDefinition = {
+export type ApiDefinition = {
   family: string;
   subgroup?: string;
   slug: string;
@@ -197,11 +199,11 @@ const storeMethods = [
   ["save-segment", "saveSegment()", "saveSegment(segment: TopicSegment): Promise<TopicSegment>"], ["save-node", "saveNode()", "saveNode(node: TopicNode): Promise<void>"], ["save-edge", "saveEdge()", "saveEdge(edge: TopicEdge): Promise<void>"], ["insert-memories", "insertMemories()", "insertMemories(nodes: MemoryNodeInsert[]): Promise<void>"], ["build-memory-edges", "buildMemoryEdges()", "buildMemoryEdges(topicNodeId: string, sessionId: string, threshold: number): Promise<void>"], ["clear-session", "clearSession()", "clearSession(sessionId: string): Promise<void>"], ["clear-session-graph", "clearSessionGraph()", "clearSessionGraph(sessionId: string): Promise<void>"], ["delete-node", "deleteNode()", "deleteNode(nodeId: string, sessionId?: string): Promise<void>"],
   ["get-topic-node", "getTopicNode()", "getTopicNode(id: string, sessionId?: string): Promise<TopicNode | null>"], ["get-node-by-segment", "getNodeBySegment()", "getNodeBySegment(id: string): Promise<TopicNode | null>"], ["get-nodes-by-session", "getNodesBySession()", "getNodesBySession(sessionId: string, options?: TagFilterOptions): Promise<TopicNode[]>"], ["get-last-topic-node", "getLastTopicNode()", "getLastTopicNode(sessionId: string): Promise<TopicNode | null>"], ["get-segments-by-session", "getSegmentsBySession()", "getSegmentsBySession(sessionId: string): Promise<TopicSegment[]>"], ["get-session-node-count", "getSessionNodeCount()", "getSessionNodeCount(sessionId: string): Promise<number>"], ["get-edges-by-type", "getEdgesByType()", "getEdgesByType(sessionId: string, type: string): Promise<TopicEdge[]>"], ["get-edges-by-session", "getEdgesBySession()", "getEdgesBySession(sessionId: string): Promise<TopicEdge[]>"], ["get-memories-by-segment", "getMemoriesBySegment()", "getMemoriesBySegment(id: string): Promise<MemoryNode[]>"], ["get-memories-by-topic", "getMemoriesByTopic()", "getMemoriesByTopic(id: string): Promise<MemoryNode[]>"], ["get-memories-by-session", "getMemoriesBySession()", "getMemoriesBySession(sessionId: string): Promise<MemoryNode[]>"], ["get-memory-edges-by-session", "getMemoryEdgesBySession()", "getMemoryEdgesBySession(sessionId: string): Promise<MemoryEdge[]>"], ["get-top-k-similar", "getTopKSimilar()", "getTopKSimilar(nodeId: string, embedding: number[], sessionId: string, k: number): Promise<TopicNode[]>"], ["get-similar-nodes", "getSimilarNodes()", "getSimilarNodes(embedding: number[], sessionId: string, options?): Promise<TopicNode[]>"], ["get-similar-nodes-across-sessions", "getSimilarNodesAcrossSessions()", "getSimilarNodesAcrossSessions(embedding: number[], sessionIds: string[], options?): Promise<TopicNode[]>"], ["node-similarity", "nodeSimilarity()", "nodeSimilarity(nodeAId: string, nodeBId: string): Promise<number>"], ["get-neighbours", "getNeighbours()", "getNeighbours(nodeIds: string[], hopDepth: number, sessionId?: string): Promise<TopicNode[]>"], ["get-previous-node", "getPreviousNode()", "getPreviousNode(sessionId: string, topicOrder: number): Promise<TopicNode | null>"],
   ["search-memories", "searchMemories()", "searchMemories(embedding: number[], sessionId: string, limit: number, minSimilarity: number, options?): Promise<Array<MemoryNode & { similarity: number }>>"], ["search-memories-across-sessions", "searchMemoriesAcrossSessions()", "searchMemoriesAcrossSessions(embedding: number[], sessionIds: string[], limit: number, minSimilarity: number, options?): Promise<Array<MemoryNode & { similarity: number }>>"],
-  ["list-memory-nodes-for-maintenance", "listMemoryNodesForMaintenance()", "listMemoryNodesForMaintenance(): Promise<MemoryNode[]>"], ["forget-memory", "forgetMemory()", "forgetMemory(id: string): Promise<boolean>"], ["forget-memories", "forgetMemories()", "forgetMemories(ids: string[]): Promise<number>"], ["suppress-topic", "suppressTopic()", "suppressTopic(id: string): Promise<boolean>"], ["restore-topic", "restoreTopic()", "restoreTopic(id: string): Promise<boolean>"], ["mark-memory-nodes-conflicting", "markMemoryNodesConflicting()", "markMemoryNodesConflicting(ids: string[]): Promise<number>"], ["mark-memory-node-superseded", "markMemoryNodeSuperseded()", "markMemoryNodeSuperseded(id: string, supersededBy: string): Promise<boolean>"], ["mark-memory-node-decayed", "markMemoryNodeDecayed()", "markMemoryNodeDecayed(id: string): Promise<boolean>"], ["update-memory-node-confidence", "updateMemoryNodeConfidence()", "updateMemoryNodeConfidence(id: string, confidence: number): Promise<boolean>"], ["upsert-memory-edge", "upsertMemoryEdge()", "upsertMemoryEdge(edge: MemoryEdge): Promise<boolean>"], ["get-memory-history-by-id", "getMemoryHistoryById()", "getMemoryHistoryById(id: string, options?: MemoryHistoryOptions): Promise<MemoryHistoryResult>"], ["get-memory-history-by-fact", "getMemoryHistoryByFact()", "getMemoryHistoryByFact(subject: string, predicate: string, options?: MemoryHistoryOptions): Promise<MemoryHistoryResult>"], ["get-memory-diff", "getMemoryDiff()", "getMemoryDiff(fromId: string, toId: string): Promise<MemoryDiff>"],
+  ["list-memory-nodes-for-maintenance", "listMemoryNodesForMaintenance()", "listMemoryNodesForMaintenance(): Promise<MemoryNode[]>"], ["forget-memory", "forgetMemory()", "forgetMemory(id: string): Promise<boolean>"], ["forget-memories", "forgetMemories()", "forgetMemories(ids: string[]): Promise<number>"], ["suppress-topic", "suppressTopic()", "suppressTopic(id: string): Promise<boolean>"], ["restore-topic", "restoreTopic()", "restoreTopic(id: string): Promise<boolean>"], ["mark-memory-nodes-conflicting", "markMemoryNodesConflicting()", "markMemoryNodesConflicting(ids: string[]): Promise<number>"], ["mark-memory-node-superseded", "markMemoryNodeSuperseded()", "markMemoryNodeSuperseded(id: string, supersededBy: string): Promise<boolean>"], ["mark-memory-node-decayed", "markMemoryNodeDecayed()", "markMemoryNodeDecayed(id: string): Promise<boolean>"], ["update-memory-node-quality", "updateMemoryNodeQuality()", "updateMemoryNodeQuality(id: string, quality: MemoryQuality): Promise<boolean>"], ["upsert-memory-edge", "upsertMemoryEdge()", "upsertMemoryEdge(edge: MemoryEdge): Promise<boolean>"], ["get-memory-history-by-id", "getMemoryHistoryById()", "getMemoryHistoryById(id: string, options?: MemoryHistoryOptions): Promise<MemoryHistoryResult>"], ["get-memory-history-by-fact", "getMemoryHistoryByFact()", "getMemoryHistoryByFact(subject: string, predicate: string, options?: MemoryHistoryOptions): Promise<MemoryHistoryResult>"], ["get-memory-diff", "getMemoryDiff()", "getMemoryDiff(fromId: string, toId: string): Promise<MemoryDiff>"],
   ["save-fleet", "saveFleet()", "saveFleet(fleetId: string, name?: string): Promise<void>"], ["save-fleet-agent", "saveFleetAgent()", "saveFleetAgent(agent: FleetAgentRecord): Promise<void>"], ["get-fleet-agents", "getFleetAgents()", "getFleetAgents(fleetId: string): Promise<FleetAgentRecord[]>"], ["get-nodes-by-color", "getNodesByColor()", "getNodesByColor(fleetId: string, agentColor: string): Promise<TopicNode[]>"], ["get-similar-nodes-across-fleet", "getSimilarNodesAcrossFleet()", "getSimilarNodesAcrossFleet(fleetId: string, embedding: number[], options?): Promise<TopicNode[]>"], ["tag-session-nodes", "tagSessionNodes()", "tagSessionNodes(sessionId: string, metadata: object): Promise<void>"], ["set-session-tags", "setSessionTags()", "setSessionTags(sessionId: string, tags: string[]): Promise<void>"], ["insert-graft-registry", "insertGraftRegistry()", "insertGraftRegistry(entry: GraftRegistryEntry): Promise<GraftRegistryEntry>"], ["get-graft-registry", "getGraftRegistry()", "getGraftRegistry(sessionId: string): Promise<GraftRegistryEntry[]>"], ["delete-graft-registry", "deleteGraftRegistry()", "deleteGraftRegistry(nodeId: string): Promise<void>"], ["absorb-nodes", "absorbNodes()", "absorbNodes(nodes: TopicNode[], targetSessionId: string, options?): Promise<TopicNode[]>"],
 ] as const;
 for (const [slug, label, signature] of storeMethods) {
-  const subgroup = ["index", "initialize", "migrate", "verify-schema", "rebuild-edges-for-session", "close"].includes(slug) ? "Lifecycle & schema" : slug.includes("message") || slug.includes("ingest-state") ? "Messages & ingest state" : ["save-segment", "save-node", "save-edge", "insert-memories", "build-memory-edges", "clear-session", "clear-session-graph", "delete-node"].includes(slug) ? "Graph writes" : slug.startsWith("search-") ? "Memory search" : slug.includes("maintenance") || slug.includes("forget") || slug.includes("suppress") || slug.includes("restore") || slug.includes("mark-") || slug.includes("confidence") || slug.includes("history") || slug.includes("diff") || slug.includes("upsert") ? "Lifecycle maintenance" : slug.includes("fleet") || slug.includes("color") || slug.includes("graft") || slug === "tag-session-nodes" || slug === "set-session-tags" || slug === "absorb-nodes" ? "Fleet & graft registry" : "Graph reads";
+  const subgroup = ["index", "initialize", "migrate", "verify-schema", "rebuild-edges-for-session", "close"].includes(slug) ? "Lifecycle & schema" : slug.includes("message") || slug.includes("ingest-state") ? "Messages & ingest state" : ["save-segment", "save-node", "save-edge", "insert-memories", "build-memory-edges", "clear-session", "clear-session-graph", "delete-node"].includes(slug) ? "Graph writes" : slug.startsWith("search-") ? "Memory search" : slug.includes("maintenance") || slug.includes("forget") || slug.includes("suppress") || slug.includes("restore") || slug.includes("mark-") || slug.includes("quality") || slug.includes("history") || slug.includes("diff") || slug.includes("upsert") ? "Lifecycle maintenance" : slug.includes("fleet") || slug.includes("color") || slug.includes("graft") || slug === "tag-session-nodes" || slug === "set-session-tags" || slug === "absorb-nodes" ? "Fleet & graft registry" : "Graph reads";
   const parameterList = signature.match(/\(([^)]*)\)/)?.[1] ?? "";
   const exampleArguments = parameterList
     .split(",")
@@ -233,36 +235,7 @@ const typeFamilies: Record<string, string[]> = {
   "Studio preview": ["StudioPreviewMode", "StudioPreviewRequest", "StudioPreviewResult", "StudioPreviewStatus", "StudioPreviewService", "StudioPreviewServiceConfig"],
 };
 
-const typeDeclarations: Record<string, string> = {
-  Message: `interface Message {\n  role: "system" | "user" | "assistant";\n  content: string;\n}`,
-  IngestOptions: `interface IngestOptions {\n  tags?: string[];\n}`,
-  IngestTextOptions: `interface IngestTextOptions {\n  replace?: boolean;\n  label?: string;\n  source?: string;\n}`,
-  RememberOptions: `type RememberOptions = IngestTextOptions;`,
-  GraftByRelevanceOptions: `interface GraftByRelevanceOptions {\n  topK?: number;\n  minSimilarity?: number;\n  hopDepth?: number;\n  expansionStrategy?: "none" | "graph";\n  sessionIds?: string[];\n}`,
-  AbsorbFromAgentOptions: `interface AbsorbFromAgentOptions {\n  topicIds?: string[];\n  prompt?: string;\n  minSimilarity?: number;\n  limit?: number;\n}`,
-  MemoGrafterConfig: `interface MemoGrafterConfig {\n  db: MemoGrafterDatabaseConfig;\n  llm: LLMAdapter;\n  embedder: EmbedAdapter;\n  systemPrompt?: string;\n  drift?: MemoGrafterDriftConfig;\n  graph?: MemoGrafterGraphConfig;\n  inject?: MemoGrafterInjectConfig;\n  queue?: MemoGrafterQueueConfig;\n  cache?: MemoGrafterCacheConfig;\n}`,
-  MemoGrafterDatabaseConfig: `interface MemoGrafterDatabaseConfig {\n  connectionString: string;\n  telemetry?: MemoGrafterDatabaseTelemetry;\n}`,
-  MemoGrafterQueueConfig: `interface MemoGrafterQueueConfig {\n  redisUrl: string;\n  queueName?: string;\n  removeOnComplete?: boolean | number;\n  removeOnFail?: boolean | number;\n  telemetry?: MemoGrafterQueueTelemetry;\n}`,
-  MemoGrafterCacheConfig: `interface MemoGrafterCacheConfig {\n  connectionString: string;\n  ttlSeconds?: number;\n}`,
-  MemoGrafterConfigSource: `type MemoGrafterConfigSource =\n  | MemoGrafterProjectConfig\n  | (() => MemoGrafterProjectConfig | Promise<MemoGrafterProjectConfig>);`,
-  MemoGrafterConfigOverrides: `interface MemoGrafterConfigOverrides {\n  db?: Partial<MemoGrafterDatabaseConfig>;\n  llm?: LLMAdapter;\n  embedder?: EmbedAdapter;\n  systemPrompt?: string;\n  drift?: Partial<MemoGrafterDriftConfig>;\n  graph?: Partial<MemoGrafterGraphConfig>;\n  inject?: Partial<MemoGrafterInjectConfig>;\n  queue?: MemoGrafterQueueConfig | false;\n  cache?: MemoGrafterCacheConfig | false;\n}`,
-  TopicNode: `interface TopicNode {\n  id: string;\n  sessionId: string;\n  segmentId: string;\n  label: string;\n  summary: string;\n  embedding: number[];\n  tags?: string[];\n  source?: string;\n  messageRange: [number, number];\n  topicOrder: number;\n  driftScore: number;\n  agentColor: string | null;\n  fleetId: string | null;\n  agentId: string | null;\n  suppressed?: boolean;\n  suppressedAt?: Date | null;\n  createdAt: Date;\n}`,
-  TopicSegment: `interface TopicSegment {\n  id: string;\n  sessionId: string;\n  startIndex: number;\n  endIndex: number;\n  topicOrder: number;\n  driftScore: number;\n  createdAt: Date;\n}`,
-  MemoryNode: `interface MemoryNode {\n  id: string;\n  segmentId: string;\n  topicNodeId: string;\n  agentId: string | null;\n  sessionId: string;\n  memoryType: MemoryType;\n  sourceType: MemorySourceType;\n  subject: string;\n  predicate: string;\n  value: string;\n  confidence: number;\n  embedding: number[];\n  tags?: string[];\n  source?: string;\n  sourceUrl: string | null;\n  sourceTitle: string | null;\n  supersededBy: string | null;\n  decayed: boolean;\n  forgotten?: boolean;\n  forgottenAt?: Date | null;\n  hasConflict?: boolean;\n  agentColor: string | null;\n  fleetId: string | null;\n  createdAt: Date;\n}`,
-  TagFilterOptions: `interface TagFilterOptions {\n  tags?: string[];\n  tagMode?: "all" | "any";\n  scope?: "session" | "session-and-tags" | "tagged";\n  sessionIds?: string[];\n  includeSuppressed?: boolean;\n  includeForgotten?: boolean;\n}`,
-  RetrieverConfig: `interface RetrieverConfig {\n  limit?: number;\n  minSimilarity?: number;\n  tokenBudget?: number;\n  tags?: string[];\n  tagMode?: "all" | "any";\n  scope?: "session" | "session-and-tags" | "tagged";\n  sessionIds?: string[];\n  scoring?: { similarityWeight?: number; confidenceWeight?: number };\n  cache?: { ttlSeconds?: number };\n}`,
-  InjectionResult: `interface InjectionResult {\n  systemPrompt: string;\n  nodes: TopicNode[];\n  memories?: MemoryNode[];\n  tokenCount: number;\n  tokenBudget?: number;\n}`,
-  RetrievalResult: `interface RetrievalResult {\n  facts: (MemoryNode & { similarity: number })[];\n  nodes: TopicNode[];\n  systemPrompt: string;\n  tokenCount: number;\n  tokenBudget?: number;\n}`,
-  GraphSnapshot: `interface GraphSnapshot {\n  sessionId: string;\n  nodes: TopicNode[];\n  snapshotNodes: GraphSnapshotNode[];\n  edges: TopicEdge[];\n  memories: MemoryNode[];\n  snapshotMemories: GraphSnapshotMemory[];\n  memoryEdges: MemoryEdge[];\n  capturedAt: string;\n}`,
-  MemoryType: `type MemoryType = "fact" | "insight" | "question" | "task" | "reference";`,
-  MemorySourceType: `type MemorySourceType = "conversation" | "note" | "document" | "code";`,
-  DriftMode: `type DriftMode = "window" | "intent";`,
-  DriftSensitivity: `type DriftSensitivity = "low" | "medium" | "high";`,
-  GraftExpansionStrategy: `type GraftExpansionStrategy = "none" | "graph";`,
-  FleetMemoryMode: `type FleetMemoryMode = "local" | "fleet" | "both";`,
-  LLMAdapter: `interface LLMAdapter {\n  complete(messages: Message[], system?: string): Promise<string>;\n}`,
-  EmbedAdapter: `interface EmbedAdapter {\n  embed(text: string): Promise<number[]>;\n}`,
-};
+const typeDeclarations: Record<string, string> = contracts.types;
 
 const typeFieldHelp: Record<string, string[]> = {
   TagFilterOptions: [
@@ -275,10 +248,10 @@ const typeFieldHelp: Record<string, string[]> = {
   ],
   RetrieverConfig: [
     "`limit?` (`number`) — Maximum number of ranked memory facts to return.",
-    "`minSimilarity?` (`number`) — Minimum semantic similarity required for a match.",
+    "`minSimilarity?` is deprecated for recall; it no longer cuts off candidate generation. Use bounded candidates and adaptive selection.",
     "`tokenBudget?` (`number`) — Maximum token budget for assembled prompt context.",
     "`tags?`, `tagMode?`, `scope?`, `sessionIds?` — Control tag matching and authorized session scope.",
-    "`scoring?` — Blend semantic similarity and stored confidence; defaults are `0.7` and `0.3` respectively.",
+    "`candidateLimit?` defaults to 40; `limit?` defaults to 10. Adaptive `selection` controls topic count, relative score floor, and score gaps.",
     "`cache.ttlSeconds?` — Override the retrieval-cache lifetime for this operation.",
   ],
   IngestOptions: ["`tags?` (`string[]`) — Normalized metadata copied to topics and memories created by this ingestion."],
@@ -298,7 +271,9 @@ const typeFieldHelp: Record<string, string[]> = {
   ],
   RetrievalResult: [
     "`facts` contains ranked memory objects augmented with a semantic `similarity` score.",
-    "`nodes` contains the parent topics represented by the returned facts.",
+    "`nodes` contains selected topics, including topic-vector matches and pinned topics when composed by context().",
+    "`episodes`, `selection`, and `topicMatches` explain bounded event history and candidate selection. `clusterMetadata` is organizational metadata loaded after selection.",
+    "`pinnedNodes`, `pinnedContextTruncated`, and `pinnedTokenBudget` describe separately budgeted required context. `degraded` and `warnings` describe best-effort failures.",
     "`systemPrompt` is prompt-ready memory context; `tokenCount` reports its size against optional `tokenBudget`.",
   ],
   InjectionResult: [
@@ -308,9 +283,14 @@ const typeFieldHelp: Record<string, string[]> = {
   ],
 };
 
+const documentedTypes = new Set(Object.values(typeFamilies).flat());
+typeFamilies["Additional public contracts"] = contracts.publicTypes.filter(name => !documentedTypes.has(name));
+
+definitions.push(...currentApiDefinitions);
+
 for (const [subgroup, names] of Object.entries(typeFamilies)) for (const name of names) {
   const packagePath = name.startsWith("Mg") ? "memo-grafter/schema" : "memo-grafter";
-  definitions.push(api("Types", name.replace(/[A-Z]/g, (l) => `-${l.toLowerCase()}`).replace(/^-/, ""), name, typeDeclarations[name] ?? `type ${name}`, `TypeScript contract for ${name}.`, `import type { ${name} } from "${packagePath}";\n\nfunction useValue(value: ${name}) {\n  return value;\n}`, { subgroup, icon: "braces", parameters: typeFieldHelp[name], returns: "A compile-time-only TypeScript contract with no runtime value.", notes: ["Use `import type` when the contract is not needed at runtime."] }));
+  definitions.push(api("Types", name.replace(/[A-Z]/g, (l) => `-${l.toLowerCase()}`).replace(/^-/, ""), name, typeDeclarations[name] ?? `type ${name}`, `TypeScript contract for ${name}.`, name === "MemoGrafterCacheConfig" ? `import type { MemoGrafterConfig } from "memo-grafter";\ntype CacheConfig = MemoGrafterConfig["cache"];` : `import type { ${name} } from "${packagePath}";\n\nfunction useValue(value: ${name}) {\n  return value;\n}`, { subgroup, icon: "braces", parameters: typeFieldHelp[name], returns: "A compile-time-only TypeScript contract with no runtime value.", notes: [name === "MemoGrafterCacheConfig" ? "This is a supporting configuration shape, not a root export. Use MemoGrafterConfig[\"cache\"] in application code." : "Use `import type` when the contract is not needed at runtime."] }));
 }
 
 function apiRoute(definition: ApiDefinition) {
@@ -367,6 +347,17 @@ function parsedParameters(definition: ApiDefinition) {
 function resultDescription(definition: ApiDefinition) {
   if (definition.returns) return definition.returns;
   if (definition.family === "Types" || definition.slug === "index") return undefined;
+  const currentResults: Record<string, string> = {
+    "analyze-detailed": "An AnalyzeReceipt with processed or queued status, ingestionRunId, messageRange, messagesPersisted, graphProcessed, and optional nodes, warnings, or queue job identity.",
+    "get-ingestion-run": "The durable IngestionRun, or null when the run does not exist.",
+    "reconcile-session": "A ReconciliationReport with inspect/repair mode, detected issues, and issue codes actually repaired.",
+    "reconcile-pending-ingestion": "A ReconciliationReport covering pending ingestion across sessions.",
+    "check-readiness": "A ReadinessResult containing ready and structured checks with status, code, message, and optional help.",
+    "get-topic-clusters": "Session-owned TopicCluster descriptions without embedding vectors; an empty array for unsupported stores or an empty catalog.",
+    "backfill-topic-clusters": "A bounded scan result with scanned count, nextCursor (null at the end), and structured warnings.",
+    "get-pinned-context": "A PinnedContextResult containing prompt, active topics and memories, token count, budget, and truncated state.",
+  };
+  if (currentResults[definition.slug]) return currentResults[definition.slug];
   const returnType = definition.signature.match(/:\s*([^\n]+)$/)?.[1];
   if (!returnType || returnType === "Promise<void>" || returnType === "void") return undefined;
   if (returnType.includes("RetrievalResult")) return "A retrieval result containing ranked facts, matched topics, generated prompt context, and token counts.";
@@ -445,10 +436,10 @@ const editorial: Record<string, Partial<ApiDefinition>> = {
   },
   "MemoGrafterAgent:recall": {
     useWhen: ["Use when the application owns prompt construction or needs to inspect retrieved evidence without calling the chat model."],
-    behavior: ["Embeds the query, searches active structured memories, filters lifecycle-ineligible rows, ranks matches by similarity and confidence, and assembles prompt-ready context within the token budget.", "Results are facts rather than full conversation transcripts."],
+    behavior: ["Embeds the query, searches active structured memories, filters lifecycle-ineligible rows, ranks matches by similarity, using evidence quality only to break ties, and assembles prompt-ready context within the token budget.", "Results are facts rather than full conversation transcripts."],
     sideEffects: ["Read-only, apart from optional retrieval-cache writes."],
     errors: ["Rejects embedding-provider, storage, or cache failures. No matches resolve successfully with empty `facts` and `nodes`."],
-    examples: [{ label: "Inspect evidence", code: `const result = await agent.recall("deployment preferences", { limit: 5 });\nfor (const fact of result.facts) {\n  console.log(fact.value, fact.similarity, fact.confidence);\n}\nconsole.log(result.systemPrompt);` }],
+    examples: [{ label: "Inspect evidence", code: `const result = await agent.recall("deployment preferences", { limit: 5 });\nfor (const fact of result.facts) {\n  console.log(fact.value, fact.similarity, fact.quality);\n}\nconsole.log(result.systemPrompt);` }],
   },
   "MemoGrafterAgent:graft": {
     useWhen: ["Use when the application already knows which topic IDs should supply broader context."],
@@ -644,7 +635,6 @@ function purposeText(definition: ApiDefinition) {
 }
 
 function relatedApis(definition: ApiDefinition): DocRelatedLink[] {
-  if (definition.related?.length) return definition.related;
   const links: Record<string, DocRelatedLink[]> = {
     invoke: [{ label: "recall()", href: "/docs/api-reference/memo-grafter-agent/recall", description: "Retrieve memory without running the full chat turn." }, { label: "getHistory()", href: "/docs/api-reference/memo-grafter-agent/get-history", description: "Inspect the conversation retained by the agent." }],
     recall: [{ label: "graftByRelevance()", href: "/docs/api-reference/memo-grafter-agent/graft-by-relevance", description: "Turn a relevance query into prompt-ready memory context." }],
@@ -652,9 +642,9 @@ function relatedApis(definition: ApiDefinition): DocRelatedLink[] {
     forget: [{ label: "forgetMany()", href: "/docs/api-reference/memo-grafter-agent/forget-many", description: "Soft-forget several memories together." }, { label: "getMemoryHistory()", href: "/docs/api-reference/memo-grafter-agent/get-memory-history", description: "Inspect versions retained after lifecycle changes." }],
     "graft-by-relevance": [{ label: "recall()", href: "/docs/api-reference/memo-grafter-agent/recall", description: "Retrieve ranked memory and its evidence." }],
   };
-  const explicit = links[definition.slug] ?? [];
-  const referencedTypes = [...new Set(definition.signature.match(/\b[A-Z][A-Za-z0-9]+(?:Options|Config|Result|Node|Segment|Snapshot|Report|Diff|History|Message)\b/g) ?? [])]
-    .filter((name) => Boolean(typeDeclarations[name]))
+  const explicit = definition.related ?? links[definition.slug] ?? [];
+  const referencedTypes = [...new Set(definition.signature.match(/\b[A-Z][A-Za-z0-9]+\b/g) ?? [])]
+    .filter((name) => name !== definition.label && Boolean(typeDeclarations[name]))
     .slice(0, 4)
     .map((name) => ({
       label: name,
@@ -675,6 +665,10 @@ function apiPage(baseDefinition: ApiDefinition): DocPage {
     ...baseDefinition,
     ...editorial[`${baseDefinition.family}:${baseDefinition.slug}`],
   };
+  const owner = definition.family === "GraphStore" ? "PostgresGraphStore" : ["MemoGrafter", "MemoGrafterAgent"].includes(definition.family) ? definition.family : definition.subgroup ?? definition.family;
+  const name = definition.label.replace(/\(\)$/, "").split(".").at(-1);
+  const sourceSignature = (contracts.signatures as Record<string, string>)[`${owner}.${name}`];
+  if (sourceSignature) definition.signature = sourceSignature;
   const href = apiRoute(definition);
   const isType = definition.family === "Types";
   const isConstructor = definition.slug === "index";
@@ -717,19 +711,7 @@ const overviewPage: DocPage = {
   ],
 };
 
-const errorPage: DocPage = {
-  slug: "api-reference/error-handling",
-  eyebrow: "API Reference",
-  title: "Error handling",
-  description: "Handle provider, storage, and queue failures without assuming named package error classes.",
-  sections: [
-    { title: "Example", code: [{ label: "errors.ts", language: "ts", code: `try {\n  return await agent.recall(query);\n} catch (error: unknown) {\n  logger.error({ error, sessionId }, "Recall failed");\n  return { facts: [], systemPrompt: "" };\n}` }] },
-    { title: "Failure boundaries", bullets: ["Provider SDKs can throw provider-specific authentication, rate-limit, and transport errors.", "Required storage operations reject when the graph cannot be read or persisted.", "Queued ingestion can fail after submission, so production workers should record and monitor failed jobs.", "Validate identifiers and user-controlled options before invoking destructive lifecycle operations such as forgetting or clearing a session."] },
-    { title: "Recovery strategy", body: ["Catch errors at the boundary where your application can add session and operation context. Retry only transient provider or transport failures, and avoid automatically retrying destructive operations unless they are known to be idempotent."] },
-  ],
-};
-
-export const apiReferencePages: DocPage[] = [overviewPage, ...visibleDefinitions.map(apiPage), errorPage];
+export const apiReferencePages: DocPage[] = [overviewPage, ...visibleDefinitions.map(apiPage), currentErrorPage];
 
 const familyOrder = ["MemoGrafterAgent", "Configuration", "MemoGrafter", "Fleet Memory", "Maintenance", "Provider Adapters", "Types", "Pipelines", "GraphStore", "Schema", "Studio Preview"];
 const familyIcons: Record<string, DocNavIcon> = { MemoGrafterAgent: "bot", Configuration: "settings", MemoGrafter: "box", "Fleet Memory": "users", Maintenance: "refresh", "Provider Adapters": "plug", Types: "braces", Pipelines: "workflow", GraphStore: "database", Schema: "table", "Studio Preview": "monitor-play" };

@@ -596,7 +596,7 @@ console.log(context.facts);`,
             label: "assistant.ts",
             language: "ts",
             code: `const preferences = await agent.recall("meeting time preference", {
-  minSimilarity: 0.4,
+  
 });
 
 const outdated = preferences.facts.find((fact) =>
@@ -664,7 +664,7 @@ try {
         title: "Inspect it in Studio",
         bullets: [
           "Open the agent session and inspect the scheduling topic.",
-          "Confirm the meeting-time fact, tags, confidence, and source.",
+          "Confirm the meeting-time fact, tags, quality, and source.",
           "Use Prompt Preview for “Plan a morning meeting.”",
           "After forgetting the preference, confirm the lifecycle state remains visible while active preview excludes it.",
         ],
@@ -794,7 +794,7 @@ await memo.ingestText(
     tagMode: "all",
     scope: "tagged",
     limit: 10,
-    minSimilarity: 0.4,
+    
   },
 );
 
@@ -854,7 +854,7 @@ try {
     tags: ["journal", "user:alice"],
     scope: "tagged",
     tagMode: "all",
-    minSimilarity: 0.4,
+    
   });
 
   console.log(themes.facts);
@@ -1022,7 +1022,7 @@ await memo.ingestText(reportText, "report-17", {
     tags: ["project:retrieval-study"],
     scope: "tagged",
     limit: 12,
-    minSimilarity: 0.5,
+    
     tokenBudget: 1400,
   },
 );
@@ -1031,7 +1031,7 @@ console.table(
   evidence.facts.map((fact) => ({
     value: fact.value,
     source: fact.source,
-    confidence: fact.confidence,
+    quality: fact.quality,
     similarity: fact.similarity,
   })),
 );`,
@@ -1287,7 +1287,7 @@ const writer = await fleet.createWorker({
             label: "research.ts",
             language: "ts",
             code: `await researcher.invoke(
-  "The study reports higher retrieval precision with confidence weighting.",
+  "The study compares retrieval precision across candidate limits.",
 );
 await researcher.invoke(
   "Its main limitation is a small evaluation set.",
@@ -1368,7 +1368,7 @@ try {
   );
 
   await researcher.invoke(
-    "The study reports higher precision with confidence weighting.",
+    "The study compares precision across candidate limits.",
   );
   await researcher.invoke(
     "Its main limitation is a small evaluation set.",

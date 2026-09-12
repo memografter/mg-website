@@ -93,7 +93,8 @@ export function Footer({ contained = false, githubUrl }: { contained?: boolean; 
       }
     >
       <div className={contained ? "footer-grid" : "footer-grid mx-auto max-w-7xl"}>
-        <div><SiteBrand /><p className="footer-description">Open-source memory infrastructure for TypeScript AI agents.</p></div>
+        {/* Match the header: Next.js tracks LCP loading metadata by image URL. */}
+        <div><SiteBrand eager /><p className="footer-description">Open-source memory infrastructure for TypeScript AI agents.</p></div>
         <div className="footer-links">
           <Link href="/docs" className="transition-colors hover:text-emerald-200">
             Docs

@@ -36,9 +36,11 @@ export const docsSearchIndex: DocSearchRecord[] = docsPages.flatMap((page) => {
     const content = [
       ...section.body ?? [],
       ...section.bullets ?? [],
+      ...section.table?.headers ?? [],
+      ...section.table?.rows.flat() ?? [],
       ...(section.warning ? [section.warning.title, section.warning.body] : []),
       ...section.links?.flatMap((link) => [link.label, link.description ?? ""]) ?? [],
-      ...section.code?.map((block) => block.label) ?? [],
+      ...section.code?.flatMap((block) => [block.label, block.code]) ?? [],
     ].join(" ");
 
     return {

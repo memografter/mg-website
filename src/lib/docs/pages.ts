@@ -11,6 +11,7 @@ import { expandedDocsPages } from "./expanded-pages";
 import { apiReferencePages } from "./api-reference";
 import { guidePages } from "./guide-pages";
 import { additionalAdvancedPages } from "./advanced-pages";
+import { memoryPages } from "./memory-pages";
 import { examplePages } from "./example-pages";
 import { contributorPages } from "./contributor-pages";
 
@@ -57,10 +58,22 @@ const existingDocsPages: DocPage[] = [
         bullets: [
           "`invoke()` answers the current user message using recent raw history and any available recalled memory.",
           "Background ingestion turns conversation turns into topic segments, topic nodes, memory nodes, and graph edges.",
-          "`recall()` retrieves relevant atomic facts later by meaning, confidence, lifecycle state, and token budget.",
+          "`recall()` retrieves relevant atomic facts later by meaning, evidence quality, lifecycle state, and token budget.",
         ],
       },
-    ],
+{
+  "title": "When you already own the model call",
+  "body": [
+    "Use MemoGrafter.context before generating the answer and analyzeDetailed after the completed exchange. This gives your application an explicit session ID, durable receipt, and idempotency key."
+  ],
+  "links": [
+    {
+      "label": "Existing chatbot integration",
+      "href": "/docs/guides/existing-chatbot"
+    }
+  ]
+}
+],
   },
   {
     slug: "database-setup-with-docker",
@@ -275,7 +288,7 @@ docker compose down`,
         title: "Generated files overview",
         bullets: [
           "`src/memo-grafter/mg.config.ts` contains project-level MemoGrafter settings, including the database connection and optional feature configuration.",
-          "`src/memo-grafter/mg.schema.ts` defines the MemoGrafter-managed database schema used by migration and other CLI tooling.",
+          "`src/memo-grafter/mg-schema.ts` defines the MemoGrafter-managed database schema used by migration and other CLI tooling.",
         ],
         body: [
           "Review both generated files after initialization. Keep secrets in environment variables rather than committing credentials in `mg.config.ts`.",
@@ -320,7 +333,23 @@ docker compose down`,
           "`memo-grafter migrate` manages only MemoGrafter-owned `mg_*` tables and PostgreSQL extensions. Application tables remain in your existing Prisma, Drizzle, SQL, or custom migration workflow.",
         ],
       },
-    ],
+{
+  "title": "Upgrade readiness",
+  "body": [
+    "Run init to regenerate src/memo-grafter/mg-schema.ts, then migrate and doctor. Existing mg.config.ts is preserved. Provider SDKs are optional; install the SDK used by each configured adapter. Current topic-domain migrations require PostgreSQL 15 or newer."
+  ],
+  "links": [
+    {
+      "label": "Memory quality migration",
+      "href": "/docs/guides/memory-quality-migration"
+    },
+    {
+      "label": "Errors and readiness",
+      "href": "/docs/guides/errors-and-readiness"
+    }
+  ]
+}
+],
   },
   {
     slug: "environment-setup",
@@ -443,7 +472,23 @@ export default {
           },
         ],
       },
-    ],
+{
+  "title": "Readiness and optional services",
+  "body": [
+    "Setting REDIS_URL alone does not enable caching or queueing. Opt in through cache.connectionString or queue.redisUrl in the configuration. Doctor treats optional cache failure as a warning and configured queue failure as required. MemoGrafter.create validates local SDK and environment readiness before storage initialization."
+  ],
+  "links": [
+    {
+      "label": "Errors & readiness",
+      "href": "/docs/guides/errors-and-readiness"
+    },
+    {
+      "label": "Topic domains",
+      "href": "/docs/guides/topic-domains"
+    }
+  ]
+}
+],
   },
   {
     slug: "concepts/how-it-works",
@@ -452,46 +497,43 @@ export default {
     description:
       "MemoGrafter turns conversation history into structured graph memory, then retrieves only the context an agent needs.",
     sections: [
-      {
-        title: "System overview",
-        body: [
-          "MemoGrafter sits between your application, its model, and a graph-backed store. During a conversation, it combines the current message with recent raw history and relevant long-term memories to produce a response. Afterward, it ingests new turns in the background so the memory graph stays current without delaying the reply.",
-          "The graph keeps broad topics separate from atomic facts and connects them with edges. This structure lets MemoGrafter recall, maintain, and transfer useful context without replaying an entire transcript.",
-        ],
-        diagram: "memory-graph",
-      },
-      {
-        title: "From conversation to memory",
-        body: [
-          "Ingestion starts with raw user and assistant messages. MemoGrafter detects topic changes, groups related turns into segments, summarizes each segment as a topic node, and extracts durable facts into memory nodes.",
-        ],
-        bullets: [
-          "Messages preserve the original conversation turns.",
-          "Segments mark contiguous ranges that discuss one topic.",
-          "Topic nodes summarize those ranges and provide the graph backbone.",
-          "Memory nodes store individual facts, insights, tasks, questions, and references.",
-          "Graph edges preserve semantic, temporal, reentry, update, and graft relationships.",
-        ],
-      },
-      {
-        title: "From memory to context",
-        body: [
-          "When an agent needs context, MemoGrafter embeds the query, searches active memory nodes by meaning, filters out forgotten or suppressed records, ranks the remaining facts, and formats the best results within a token budget. The application receives concise, prompt-ready memory instead of a full conversation archive.",
-        ],
-        diagram: "invoke-flow",
-      },
-      {
-        title: "Memory across sessions",
-        body: [
-          "Grafting moves relevant memory into another session or agent while preserving where it came from. Lifecycle controls can forget memories, suppress topics, restore them, or mark facts as decayed, conflicting, or superseded without deleting the underlying history by default.",
-        ],
-        bullets: [
-          "Recall retrieves relevant facts for the current request.",
-          "Grafting selects or copies useful context across sessions with provenance.",
-          "Lifecycle and maintenance keep active context accurate while retaining an auditable history.",
-        ],
-      },
-    ],
+{
+  "title": "Two application flows",
+  "body": [
+    "Use MemoGrafterAgent.invoke when MemoGrafter owns the chat call. If your application already generates responses, call context before generation and analyze or analyzeDetailed after a completed exchange."
+  ],
+  "diagram": "external-chat-flow"
+},
+{
+  "title": "Memory hierarchy",
+  "body": [
+    "Sessions contain stable topics, optionally organized into domains. Bounded episodes preserve events; canonical atomic memories retain immutable evidence. Returning to a subject can reuse its stable topic without losing each episode."
+  ],
+  "diagram": "memory-hierarchy"
+},
+{
+  "title": "Write and read boundaries",
+  "body": [
+    "The initialized PostgreSQL durable path accepts messages and a run before provider work. Preparation validates provenance and quality; the required graph, evidence, cursor, and run completion commit together. Queue acceptance does not imply searchable memory."
+  ]
+},
+{
+  "title": "Selection and lifecycle",
+  "body": [
+    "Recall searches memory, topic, and episode vectors. Similarity determines rank, evidence quality breaks ties, and adaptive selection respects candidate, topic, fact, and token limits. Inactive memories are filtered. Pins provide separately budgeted required context; clusters only organize topics."
+  ],
+  "links": [
+    {
+      "label": "Durable ingestion",
+      "href": "/docs/guides/durable-ingestion"
+    },
+    {
+      "label": "Memory quality",
+      "href": "/docs/concepts/memory-quality"
+    }
+  ]
+}
+],
   },
   {
     slug: "concepts/messages",
@@ -562,7 +604,19 @@ messages 5-8 -> cover letter writing` }],
           "Optional LLM ambiguity detection and reentry detection.",
         ],
       },
-    ],
+{
+  "title": "Segments, episodes, and stable topics",
+  "body": [
+    "A segment identifies a bounded message range. Each newly processed segment produces an episode assigned to a stable topic. Several episodes may reuse the same topic; do not assume one segment always creates one new topic."
+  ],
+  "links": [
+    {
+      "label": "Stable topics & episodes",
+      "href": "/docs/concepts/episodes"
+    }
+  ]
+}
+],
   },
   {
     slug: "concepts/topic-nodes",
@@ -571,24 +625,43 @@ messages 5-8 -> cover letter writing` }],
     description:
       "Each topic node summarizes a segment, carries an embedding, and participates in topic-level recall and grafting.",
     sections: [
-      {
-        title: "How topic nodes organize memory",
-        body: [
-          "A topic node is the durable summary of a segment. It lets MemoGrafter search for a broad theme before choosing the more specific memory facts attached to it.",
-          "Developers usually see topic nodes in Studio, graft previews, graph snapshots, and advanced retrieval debugging. They are the backbone that gives memory shape instead of leaving facts as a flat list.",
-        ],
-      },
-      {
-        title: "Important fields",
-        bullets: [
-          "`label` and `summary` extracted from a segment.",
-          "`embedding` for semantic topic search.",
-          "`messageRange`, `topicOrder`, and `driftScore` for provenance.",
-          "`tags` for project, planning, week, domain, or worker routing filters.",
-          "`suppressed` lifecycle state for active read filtering.",
-        ],
-      },
-    ],
+{
+  "title": "Stable topic identity",
+  "body": [
+    "TopicNode is the session-owned subject that can accumulate multiple episodes. Topic assignment reuses an active topic when the episode embedding meets the configured reuse threshold (default 0.82)."
+  ]
+},
+{
+  "title": "Aggregate metadata",
+  "body": [
+    "A stable topic carries its label, aggregate summary, normalized embedding centroid, source range, tags, activity timestamps, episode count, last episode ID, and revision. Earlier bounded summaries live on episodes, so reuse does not erase the original event."
+  ]
+},
+{
+  "title": "Organization and required context",
+  "body": [
+    "A topic can have an optional session-owned cluster and a persistent pin. Cluster membership does not affect retrieval. A pin adds active topic context independently of query relevance, subject to its own budget. Suppression excludes active context without deleting the topic."
+  ],
+  "links": [
+    {
+      "label": "Episodes",
+      "href": "/docs/concepts/episodes"
+    },
+    {
+      "label": "Topic domains",
+      "href": "/docs/guides/topic-domains"
+    },
+    {
+      "label": "Pinning",
+      "href": "/docs/guides/topic-pinning"
+    },
+    {
+      "label": "TopicNode contract",
+      "href": "/docs/api-reference/types/topic-node"
+    }
+  ]
+}
+],
   },
   {
     slug: "concepts/memory-nodes",
@@ -597,23 +670,45 @@ messages 5-8 -> cover letter writing` }],
     description:
       "Memory nodes hold extracted facts, insights, tasks, questions, and references attached to topic nodes.",
     sections: [
-      {
-        title: "How memory nodes recall facts",
-        body: [
-          "A memory node is the smallest useful piece of long-term memory: one fact, task, insight, question, or reference that can be ranked, filtered, forgotten, superseded, or grafted.",
-          "This is the level `recall()` usually returns to the prompt. Topic nodes explain the context; memory nodes provide the concrete facts the assistant should use.",
-        ],
-      },
-      {
-        title: "Memory triple",
-        bullets: [
-          "`subject`, `predicate`, and `value` describe the memory.",
-          "`confidence` affects retrieval ranking.",
-          "`memoryType` can be fact, insight, question, task, or reference.",
-          "`forgotten`, `decayed`, `hasConflict`, and `supersededBy` control lifecycle and maintenance behavior.",
-        ],
-      },
-    ],
+{
+  "title": "Durable, supported state",
+  "body": [
+    "Atomic memories represent user-authored or user-confirmed preferences, constraints, profile facts, goals, decisions, commitments, corrections, and important unresolved goals. Assistant suggestions and generated content are not durable user state unless adopted by a user. Documents use document ownership."
+  ]
+},
+{
+  "title": "Identity and evidence",
+  "body": [
+    "MemoryNode retains subject, predicate, value, type, source, tags, canonical identity, provenance, lifecycle state, and structured quality. Equivalent observations reinforce the canonical memory through immutable evidence rather than duplicate facts."
+  ]
+},
+{
+  "title": "Quality and retrieval",
+  "body": [
+    "quality contains explicitness, sourceReliability, stability, and salience. Unknown dimensions default to 0.5. Semantic similarity determines retrieval rank; evidence quality only breaks ties. Stability and salience influence persistence, not query relevance."
+  ]
+},
+{
+  "title": "Historical and inactive memory",
+  "body": [
+    "Forgotten, decayed, superseded, and suppressed-topic memories do not participate in ordinary active recall. History and diff retain structural changes. Conflicting active claims remain visible until sufficient evidence supports resolution."
+  ],
+  "links": [
+    {
+      "label": "Canonical memory",
+      "href": "/docs/concepts/canonical-memory"
+    },
+    {
+      "label": "Memory quality",
+      "href": "/docs/concepts/memory-quality"
+    },
+    {
+      "label": "MemoryNode contract",
+      "href": "/docs/api-reference/types/memory-node"
+    }
+  ]
+}
+],
   },
   {
     slug: "concepts/graph-edges",
@@ -769,7 +864,7 @@ await agent.ingestText(editorContent, {
     eyebrow: "Guide",
     title: "Recall relevant facts by meaning.",
     description:
-      "Targeted recall searches memory nodes, filters inactive facts, ranks by similarity and confidence, and returns a prompt-ready memory block.",
+      "Targeted recall searches memory nodes, filters inactive facts, ranks by similarity, using evidence quality only to break ties, and returns a prompt-ready memory block.",
     sections: [
       {
         title: "Recall",
@@ -779,7 +874,7 @@ await agent.ingestText(editorContent, {
             code: `// Search graph memory for facts related to the current task.
 const result = await agent.recall("deployment config", {
   limit: 8,
-  minSimilarity: 0.55,
+  
   // Keep the generated memory prompt within your model budget.
   tokenBudget: 1000,
   tags: ["project:memo-grafter"],
@@ -899,7 +994,7 @@ await targetAgent.absorbFromAgent(sourceAgent, {
         title: "Operational notes",
         bullets: [
           "Queue mode is useful when ingestion becomes too slow to run inline.",
-          "Redis connection problems are logged as warnings and normal chatbot invocation should keep going.",
+          "Optional cache failures degrade retrieval; configured queue failures must be inspected and recovered through durable ingestion state.",
           "The ingest cursor prevents queue retries from duplicating topic nodes for the same message range.",
         ],
       },
@@ -1065,7 +1160,7 @@ class MyEmbedAdapter implements EmbedAdapter {
       {
         title: "Commands",
         bullets: [
-          "`memo-grafter init`: creates `src/memo-grafter/mg.schema.ts` and `src/memo-grafter/mg.config.ts`.",
+          "`memo-grafter init`: creates `src/memo-grafter/mg-schema.ts` and `src/memo-grafter/mg.config.ts`.",
           "`memo-grafter migrate`: creates or updates MemoGrafter-owned `mg_*` database infrastructure.",
           "`memo-grafter studio`: verifies schema and starts local Studio on `localhost:2891` or the next available port.",
         ],
@@ -1139,9 +1234,9 @@ ${studioCode}` }],
           "`DATABASE_URL is not reachable`: confirm PostgreSQL, connection string, and `pgvector`.",
           "No topic nodes: check conversation length, drift settings, adapters, and queue completion.",
           "Absorb copies zero nodes: check source session, lifecycle state, and semantic thresholds.",
-          "Recall returns zero facts: lower `minSimilarity`, confirm ingestion finished, and inspect memory nodes in Studio.",
+          "Recall returns zero facts: inspect candidate limits and adaptive selection, confirm ingestion finished, and inspect memory nodes in Studio.",
           "Duplicate topics: verify incremental ingest cursor behavior and queue retries.",
-          "Redis warnings: queue/cache should warn and degrade rather than fail ordinary invocation.",
+          "Redis: cache failures are optional warnings; configured queue connectivity is required.",
         ],
       },
     ],
@@ -1209,7 +1304,7 @@ ${studioCode}` }],
           "Embed query.",
           "Search active memory-node vectors.",
           "Filter decayed, superseded, forgotten, and suppressed-topic memories.",
-          "Rank by similarity and confidence.",
+          "Rank by similarity, using evidence quality only to break ties.",
           "Group facts by parent topic node and format under token budget.",
         ],
       },
@@ -1254,7 +1349,7 @@ ${studioCode}` }],
         bullets: [
           "`ConflictDetectionPass` marks competing memory facts as conflicts.",
           "`VersioningPass` marks explicit replacements and supersession.",
-          "`DecayScoringPass` marks low-scoring old memories as decayed.",
+          "`DecayScoringPass` observes by default; explicit enforce mode can retire memories without changing quality.",
           "Passes annotate rows and edges; they do not physically delete graph data.",
         ],
       },
@@ -1335,6 +1430,7 @@ export const docsPages: DocPage[] = [
   ...contributorPages,
   ...additionalAdvancedPages,
   ...apiReferencePages,
+  ...memoryPages,
 ];
 
 const docPages = new Map(docsPages.map((page) => [page.slug, page]));
